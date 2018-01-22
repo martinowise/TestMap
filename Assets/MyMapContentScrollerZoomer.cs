@@ -8,34 +8,33 @@ using UnityEngine.UI;
 public class MyMapContentScrollerZoomer : MonoBehaviour
 {
 
-    public GameObject container;  // its a panel to scale
-    public GameObject mapScrollRect;  // ists the scroll rect container
-    public GameObject viewPort;  // ists the scroll rect container
+    public GameObject scrollRect;  //scrollrect, parent of viewport
+    public GameObject viewport;  // viewport, parent of content
+    public GameObject content;  // content
+
     public float maxScale;
     public float minScale;
     public float zoomSpeed;
-    public float resetDuration;
-    public GameObject debugPrinter;
 
     public GameObject testPlanet1;
     public GameObject testPlanet2;
     public GameObject testPlanet3;
-    
-    private void Start()
-    {
-        
-    }
 
     void Update()
     {
         // Mausbedienung
+        Vector2 middle_m = new Vector2(Input.mousePosition[0], Input.mousePosition[1]);
+        Vector2 pointOnMap_m = GetMapCoordinates(content, middle_m);
+        Zoom(Input.GetAxis("Mouse ScrollWheel"), pointOnMap_m); //dividiere input für bessere interpolation
 
-        Zoom(Input.GetAxis("Mouse ScrollWheel")); // zoom mit fixpunkt mitte des screens
+        //----------------------------------------------------------------------------------------------------------------------//
+        //----------------------------------------------------------------------------------------------------------------------//
 
-        //    If there are two touches on the device...
+        // If there are two touches on the device...
         if (Input.touchCount == 2 && Input.GetTouch(0).phase == TouchPhase.Moved && Input.GetTouch(1).phase == TouchPhase.Moved)
         {
-            mapScrollRect.GetComponent<ScrollRect>().enabled = false;
+            scrollRect.GetComponent<ScrollRect>().enabled = false;
+
             // Store both touches.
             Touch touchZero = Input.GetTouch(0);
             Touch touchOne = Input.GetTouch(1);
@@ -44,89 +43,47 @@ public class MyMapContentScrollerZoomer : MonoBehaviour
             Vector2 touchZeroPrevPos = touchZero.position - touchZero.deltaPosition;
             Vector2 touchOnePrevPos = touchOne.position - touchOne.deltaPosition;
 
-
             // Find the magnitude of the vector (the distance) between the touches in each frame.
             float prevTouchDeltaMag = (touchZeroPrevPos - touchOnePrevPos).magnitude;
             float touchDeltaMag = (touchZero.position - touchOne.position).magnitude;
 
             // Find the difference in the distances between each frame.
             float deltaMagnitudeDiff = prevTouchDeltaMag - touchDeltaMag;
+            
+            Vector2 middle_t = new Vector2((touchZeroPrevPos.x + touchOnePrevPos.x) / 2, (touchZeroPrevPos.y + touchOnePrevPos.y) / 2);
+            Vector2 pointOnMap_t = GetMapCoordinates(content, middle_t);
 
-            //  if (currentScale.x != maxScale || currentScale.x != minScale)
-            {
-                Vector2 middle = new Vector2((touchZeroPrevPos.x + touchOnePrevPos.x) / 2, (touchZeroPrevPos.y + touchOnePrevPos.y) / 2);
-                Vector2 pointOnMap = GetMapCoordinates(container, middle);
-                Zoom(-1 * deltaMagnitudeDiff * zoomSpeed, pointOnMap);
-            }
+            Zoom(-1 * deltaMagnitudeDiff * zoomSpeed, pointOnMap_t);
         }
 
+        //damit zoom mit touch nicht zittert wird scrollrect deaktiviert bis die finger den bildschirm verlassen
         if ((Input.touchCount == 1 && Input.GetTouch(0).phase == TouchPhase.Ended) || (Input.touchCount == 2 && Input.GetTouch(0).phase == TouchPhase.Ended && Input.GetTouch(1).phase == TouchPhase.Ended))
         {
-            mapScrollRect.GetComponent<ScrollRect>().enabled = true;
+            scrollRect.GetComponent<ScrollRect>().enabled = true;
         }
-        //if (Input.GetMouseButton(0))
-        //{
-        //    Debug.Log(Input.mousePosition);
-        //    // die mitte des screens in weltcoodinaten soll nach zoom wieder dort sein, bzw.  bei touch der mittelpunkt der geste..
-        //    var rect1 = viewPort.GetComponent<RectTransform>();
-        //     // dieser punkt soll nachher wieder in der mitte des screens liegen!
-        //    Vector2 fixPoint = new Vector2(rect1.rect.width/2, rect1.rect.height / 2);
-        //    Vector2 v4 = GetMapCoordinates(container, fixPoint);
-
-        //}
-
     }
-
-    private Vector2 GetMapCoordinates(GameObject map, Vector2 v2)
-    {
-        // tod: wahrschenlich richtig, aber ich weiss es nicht genau..
+    
+    private Vector2 GetMapCoordinates(GameObject content, Vector2 zoomPos)
+        {
         Vector2 localCursor;
-        var rect1 = map.GetComponent<RectTransform>();
-        // var pos1 = dat.position;
+        RectTransform rect1 = content.GetComponent<RectTransform>();
 
-
-        if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(rect1, v2,
-            null, out localCursor))
-            localCursor = new Vector2(0, 0);
-
-        float px = localCursor.x / rect1.rect.width;
-        float py = localCursor.y / rect1.rect.height;
-
-
+        if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(rect1, zoomPos, null, out localCursor))
+        { localCursor = new Vector2(0, 0); }
+        
         return localCursor;
-
     }
-    
-    void Zoom(float increment)
-    {
-        // todo.. das stimmt wohl nicht ganz..
-        // middle of screen as fix point..
-        var rect1 = viewPort.GetComponent<RectTransform>(); // screen
-        // keine ahnung, ob das wirklich stimmt..
-        Vector2 centerOfScreen = new Vector2(rect1.rect.left + (rect1.rect.width / 2), rect1.rect.bottom + (rect1.rect.height / 2));
-        Vector2 centerOfScreenOnMap = GetMapCoordinates(container, centerOfScreen);
 
-        if (debugPrinter != null)
-            debugPrinter.GetComponent<Text>().text = centerOfScreenOnMap.ToString("0") + "," + centerOfScreenOnMap.ToString("0");
-
-        Zoom(increment, centerOfScreenOnMap);
-    }
-    
     void Zoom(float increment, Vector2 fixpointOnMap)
     {
-        // todo.. das stimmt wohl nicht ganz..
-
-        Vector3 currentScale = container.GetComponent<RectTransform>().localScale;
+        Vector3 currentScale = content.GetComponent<RectTransform>().localScale;
         float oldScale = currentScale.x;
-
 
         currentScale.x += increment;
         currentScale.y += increment;
-        if (currentScale.x >= maxScale || currentScale.x <= minScale)
-        {
-            return;
-        }
 
+        if (currentScale.x >= maxScale || currentScale.x <= minScale)
+        { return; }
 
         //https://stackoverflow.com/questions/2916081/zoom-in-on-a-point-using-scale-and-translate
 
@@ -135,29 +92,15 @@ public class MyMapContentScrollerZoomer : MonoBehaviour
         float dX = fixpointOnMap.x * (newScale - oldScale);
         float dY = fixpointOnMap.y * (newScale - oldScale);
 
-        //if (debugPrinter != null)
-        //    debugPrinter.GetComponent<Text>().text = dX.ToString("0") + "->" + dY.ToString("0");
-
-        Vector3 p = container.GetComponent<RectTransform>().position;
+        Vector3 p = content.GetComponent<RectTransform>().position;
         Vector3 newPosition = new Vector3(p.x - dX, p.y - dY, p.z);
 
         // das hier kann sicherlich in eine coroutine, und schrittweise in kleinen änderungen, sonst nicht smooth..
         // also zb 5 schritte 
-        container.GetComponent<RectTransform>().localScale = currentScale;
-        container.GetComponent<RectTransform>().position = newPosition;
-
-
+        content.GetComponent<RectTransform>().localScale = currentScale;
+        content.GetComponent<RectTransform>().position = newPosition;
     }
 
-    public void ZoomPlus()
-    {
-        Zoom(0.1f);
-    }
-
-    public void ZoomMinus()
-    {
-        Zoom(-0.1f);
-    }
 
     // zum testen..
     int cc = 0;
@@ -173,13 +116,23 @@ public class MyMapContentScrollerZoomer : MonoBehaviour
         CenterObject(o);
     }
 
+    public void CenterObject(GameObject obj) {
+        Vector2 pos = obj.GetComponent<RectTransform>().localPosition; // position des objekts
+        content.GetComponent<RectTransform>().anchoredPosition = -pos; //geankerte position des contents bewegt sich obj-koordinaten entgegen
+    }
+
+    //----------------------------------------------------------------------------------------------------------------------//
+
+    public int koorSize;
+    float sectorSize;
+
     int ccc = 1;
     public void LimitMapForTesting()
     {
-        // todo.. auch hier ist noch nicht klar, in welchen coodinaten das sein soll..
+        // todo.. auch hier ist noch nicht klar, in welchen coodinaten das sein soll...
         if (ccc == 1)
         {
-            LimitMap(40, 40, 60, 60); return;
+            LimitMap(40,40,60,60); return;
         }
         if (ccc == 2)
         {
@@ -198,7 +151,7 @@ public class MyMapContentScrollerZoomer : MonoBehaviour
         if (ccc > 4) ccc = 1;
         // LimitMap(int minXinPercentOfMap, int maxXInPercentOfMap, int minYinPercentOfMap, int  maxYInPercentOfMap)
     }
-    
+
     public void LimitMap(float minXinPercentOfMap, float maxXInPercentOfMap, float minYinPercentOfMap, float maxYInPercentOfMap)
     {
         // todo.. auch hier ist noch nicht klar, in welchen coodinaten das sein soll..
@@ -210,29 +163,6 @@ public class MyMapContentScrollerZoomer : MonoBehaviour
     public void ClearLimit()
     {
         LimitMap(0, 0, 100f, 100f);
-
-    }
-    
-    public void CenterObject(GameObject obj)
-    {
-
-        // todo..
-        // put this object in the center of the screen..
-        // so .. wie machen wir das?
-        Vector2 pos = obj.GetComponent<RectTransform>().localPosition; // ist bereits auf der map..
-
-        var rect1 = viewPort.GetComponent<RectTransform>(); // screen
-        // keine ahnung, ob das wirklich stimmt..
-        Vector2 centerOfScreen = new Vector2(rect1.rect.left + (rect1.rect.width / 2), rect1.rect.bottom + (rect1.rect.height / 2));
-        Vector2 centerOfScreenOnMap = GetMapCoordinates(container, centerOfScreen);
-
-        Vector2 dif = pos - centerOfScreenOnMap;
-
-        Vector3 p = container.GetComponent<RectTransform>().position;
-        Vector3 newPosition = new Vector3(p.x - dif.x, p.y - dif.y, p.z);
-
-        container.GetComponent<RectTransform>().position = newPosition;
-
 
     }
 
