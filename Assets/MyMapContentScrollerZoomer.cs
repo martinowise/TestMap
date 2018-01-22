@@ -118,40 +118,37 @@ public class MyMapContentScrollerZoomer : MonoBehaviour
 
     public void CenterObject(GameObject obj) {
         Vector2 pos = obj.GetComponent<RectTransform>().localPosition; // position des objekts
-        content.GetComponent<RectTransform>().anchoredPosition = -pos; //geankerte position des contents bewegt sich obj-koordinaten entgegen
+        content.GetComponent<RectTransform>().anchoredPosition = -pos * content.GetComponent<RectTransform>().localScale.x; //geankerte position des contents bewegt sich obj-koordinaten entgegen
     }
 
     //----------------------------------------------------------------------------------------------------------------------//
-
-    public int koorSize;
-    float sectorSize;
-
+    
     int ccc = 1;
     public void LimitMapForTesting()
     {
         // todo.. auch hier ist noch nicht klar, in welchen coodinaten das sein soll...
         if (ccc == 1)
         {
-            LimitMap(40,40,60,60); return;
+            LimitMap(new Vector3(0, 0, 0), new Vector3(800, -800, 0));
         }
         if (ccc == 2)
         {
-            LimitMap(30, 30, 70, 70); return;
+            //LimitMap();
         }
 
         if (ccc == 3)
         {
-            LimitMap(10, 10, 90, 90); return;
+            //LimitMap();
         }
         if (ccc == 3)
         {
-            ClearLimit(); return;
+            //ClearLimit();
         }
         ccc++;
         if (ccc > 4) ccc = 1;
         // LimitMap(int minXinPercentOfMap, int maxXInPercentOfMap, int minYinPercentOfMap, int  maxYInPercentOfMap)
     }
-
+    /*
     public void LimitMap(float minXinPercentOfMap, float maxXInPercentOfMap, float minYinPercentOfMap, float maxYInPercentOfMap)
     {
         // todo.. auch hier ist noch nicht klar, in welchen coodinaten das sein soll..
@@ -159,11 +156,36 @@ public class MyMapContentScrollerZoomer : MonoBehaviour
         // LimitMap(int minXinPercentOfMap, int maxXInPercentOfMap, int minYinPercentOfMap, int  maxYInPercentOfMap)
 
     }
+    */
 
+    public void LimitMap(Vector3 sPos, Vector3 ePos) {
+        //die position wird berechnet aus dem durchschnitt zweier vektoren, in meinem beispiel ein quadratisches feld, vektoren treffen sich in der mitte
+        RectTransform rect1 = content.GetComponent<RectTransform>();
+        RectTransform rect2 = viewport.GetComponent<RectTransform>();
+        Vector3 pos = sPos + ePos;
+
+        pos = new Vector3(pos[0] / 2, pos[1] / 2, 0);
+        rect1.anchoredPosition = -pos * rect1.localScale.x;
+
+        Debug.Log(rect2.rect.width * Mathf.Sqrt(2));
+        Debug.Log(pos[0]);
+
+        //jetzt noch:
+        //bewegung disablen
+        //zoom so einstellen, dass beide eckpunkte sichtbar sind
+        //diesen zoom als neuen maxzoom definieren
+    }
+
+    public void ClearLimit() {
+        //bewegung enablen
+        //maxzoom ist orig maxzoom
+    }
+
+    /*
     public void ClearLimit()
     {
         LimitMap(0, 0, 100f, 100f);
 
     }
-
+    */
 }
