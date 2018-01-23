@@ -20,6 +20,14 @@ public class MyMapContentScrollerZoomer : MonoBehaviour
     public GameObject testPlanet2;
     public GameObject testPlanet3;
 
+    float myMaxScale;
+    float myMinScale;
+
+    private void Start() {
+        myMaxScale = maxScale;
+        myMinScale = minScale;
+    }
+
     void Update()
     {
         // Mausbedienung
@@ -30,6 +38,7 @@ public class MyMapContentScrollerZoomer : MonoBehaviour
         //----------------------------------------------------------------------------------------------------------------------//
         //----------------------------------------------------------------------------------------------------------------------//
 
+        //Touchbedienung
         // If there are two touches on the device...
         if (Input.touchCount == 2 && Input.GetTouch(0).phase == TouchPhase.Moved && Input.GetTouch(1).phase == TouchPhase.Moved)
         {
@@ -61,8 +70,38 @@ public class MyMapContentScrollerZoomer : MonoBehaviour
         {
             scrollRect.GetComponent<ScrollRect>().enabled = true;
         }
+
+        //----------------------------------------------------------------------------------------------------------------------//
+        //----------------------------------------------------------------------------------------------------------------------//
+        
+        //Limit
+        if(limitActive)
+        {
+            //beschränkt horizontal
+            if (content.GetComponent<RectTransform>().anchoredPosition.x > sLimit.x * -1 * content.GetComponent<RectTransform>().localScale.x)
+            {
+                content.GetComponent<RectTransform>().anchoredPosition = new Vector2 (sLimit.x * -1 * content.GetComponent<RectTransform>().localScale.x, content.GetComponent<RectTransform>().anchoredPosition.y);
+            }
+
+            if (content.GetComponent<RectTransform>().anchoredPosition.x < eLimit.x * -1 * content.GetComponent<RectTransform>().localScale.x)
+            {
+                content.GetComponent<RectTransform>().anchoredPosition = new Vector2(eLimit.x * -1 * content.GetComponent<RectTransform>().localScale.x, content.GetComponent<RectTransform>().anchoredPosition.y);
+            }
+
+            //beschränkt vertikal
+            if (content.GetComponent<RectTransform>().anchoredPosition.y < sLimit.y * -1 * content.GetComponent<RectTransform>().localScale.y)
+            {
+                content.GetComponent<RectTransform>().anchoredPosition = new Vector2(content.GetComponent<RectTransform>().anchoredPosition.x, sLimit.y * -1 * content.GetComponent<RectTransform>().localScale.x);
+            }
+
+            if (content.GetComponent<RectTransform>().anchoredPosition.y > eLimit.y * -1 * content.GetComponent<RectTransform>().localScale.y)
+            {
+                content.GetComponent<RectTransform>().anchoredPosition = new Vector2(content.GetComponent<RectTransform>().anchoredPosition.x, eLimit.y * -1 * content.GetComponent<RectTransform>().localScale.x);
+            }
+        }
+        
     }
-    
+
     private Vector2 GetMapCoordinates(GameObject content, Vector2 zoomPos)
         {
         Vector2 localCursor;
@@ -101,8 +140,8 @@ public class MyMapContentScrollerZoomer : MonoBehaviour
         content.GetComponent<RectTransform>().position = newPosition;
     }
 
-
-    // zum testen..
+    //----------------------------------------------------------------------------------------------------------------------//
+    // center test
     int cc = 0;
     public void CenterObjectForTesting()
     {
@@ -122,33 +161,34 @@ public class MyMapContentScrollerZoomer : MonoBehaviour
     }
 
     //----------------------------------------------------------------------------------------------------------------------//
-    
+    // limit test
     int ccc = 1;
     public void LimitMapForTesting()
     {
-        // todo.. auch hier ist noch nicht klar, in welchen coodinaten das sein soll...
+        // gelöst über vektoren. wichtig: die image-dummies in der szene sind nicht ausgangspunkt für koordinaten! (gizmos verwenden?)
         if (ccc == 1)
         {
-            LimitMap(new Vector3(0, 0, 0), new Vector3(800, -800, 0));
+            LimitMap(new Vector3(0, 0, 0), new Vector3(200, -200, 0));
         }
         if (ccc == 2)
         {
-            //LimitMap();
+            LimitMap(new Vector3(0, 0, 0), new Vector3(400, -400, 0));
         }
 
         if (ccc == 3)
         {
-            //LimitMap();
+            LimitMap(new Vector3(0, 0, 0), new Vector3(600, -600, 0));
         }
-        if (ccc == 3)
+        if (ccc == 4)
         {
-            //ClearLimit();
+            LimitMap(new Vector3(0, 0, 0), new Vector3(800, -800, 0));
         }
         ccc++;
         if (ccc > 4) ccc = 1;
         // LimitMap(int minXinPercentOfMap, int maxXInPercentOfMap, int minYinPercentOfMap, int  maxYInPercentOfMap)
     }
-    /*
+
+    /* alt
     public void LimitMap(float minXinPercentOfMap, float maxXInPercentOfMap, float minYinPercentOfMap, float maxYInPercentOfMap)
     {
         // todo.. auch hier ist noch nicht klar, in welchen coodinaten das sein soll..
@@ -158,30 +198,69 @@ public class MyMapContentScrollerZoomer : MonoBehaviour
     }
     */
 
+    bool limitActive;
+    Vector3 sLimit;
+    Vector3 eLimit;
     public void LimitMap(Vector3 sPos, Vector3 ePos) {
-        //die position wird berechnet aus dem durchschnitt zweier vektoren, in meinem beispiel ein quadratisches feld, vektoren treffen sich in der mitte
+        //die position wird berechnet aus dem durchschnitt zweier vektoren, vektoren treffen sich in der mitte (funktioniert nur für quadrate weil: Mathf.sqrt(2))
         RectTransform rect1 = content.GetComponent<RectTransform>();
         RectTransform rect2 = viewport.GetComponent<RectTransform>();
         Vector3 pos = sPos + ePos;
 
+        float dist = Vector3.Distance(sPos, ePos);
+        float myDist = dist;
+        float scale = 0;
+
+        //verkleinern
+        if (rect2.rect.width * Mathf.Sqrt(2) < dist)
+        {
+            for (int i = 0; rect2.rect.width * Mathf.Sqrt(2) < dist; i++)
+            {
+                if (1 - 0.1f * i >= myMinScale)
+                {
+                    dist = myDist;
+                    scale = 1 - .1f * i;
+
+                    dist = dist * scale;
+                    rect1.localScale = new Vector3(scale, scale, scale);
+                    minScale = scale - .05f; //fix, damit man auch wirklich auf die gewünschte skalierung kommt
+                }
+                else { break; }
+            }
+        }
+        //vergrößern
+        else
+        {
+            for (int i = 0; rect2.rect.width * Mathf.Sqrt(2) > dist; i++)
+            {
+                if (1 + 0.1f * i <= myMaxScale)
+                {
+                    dist = myDist;
+                    scale = 1 + .1f * i;
+
+                    dist = dist * scale;
+                    rect1.localScale = new Vector3(scale, scale, scale);
+                    minScale = scale - .05f; //fix, damit man auch wirklich auf die gewünschte skalierung kommt
+                }
+                else { break; }
+            }
+        }
+
         pos = new Vector3(pos[0] / 2, pos[1] / 2, 0);
         rect1.anchoredPosition = -pos * rect1.localScale.x;
 
-        Debug.Log(rect2.rect.width * Mathf.Sqrt(2));
-        Debug.Log(pos[0]);
-
-        //jetzt noch:
-        //bewegung disablen
-        //zoom so einstellen, dass beide eckpunkte sichtbar sind
-        //diesen zoom als neuen maxzoom definieren
+        sLimit = sPos;
+        eLimit = ePos;
+        limitActive = true;
     }
 
     public void ClearLimit() {
-        //bewegung enablen
-        //maxzoom ist orig maxzoom
+        limitActive = false;
+        maxScale = myMaxScale;
+        minScale = myMinScale;
     }
 
-    /*
+    /* alt
     public void ClearLimit()
     {
         LimitMap(0, 0, 100f, 100f);
