@@ -159,8 +159,20 @@ public class MyMapContentScrollerZoomer : MonoBehaviour
     }
 
     public void CenterObject(GameObject obj) {
-        Vector2 pos = obj.GetComponent<RectTransform>().localPosition; // position des objekts
-        content.GetComponent<RectTransform>().anchoredPosition = -pos * content.GetComponent<RectTransform>().localScale.x; //geankerte position des contents bewegt sich obj-koordinaten entgegen
+        Vector2 startPos = content.GetComponent<RectTransform>().anchoredPosition; //position des contents im viewport
+        Vector2 endPos = -1 * obj.GetComponent<RectTransform>().localPosition * content.GetComponent<RectTransform>().localScale.x; //negierte lage des objekts mit richtiger skalierung für content
+
+        StartCoroutine(Move(startPos, endPos, 1.0f));
+    }
+
+    IEnumerator Move(Vector2 sPos, Vector2 ePos, float seconds) {
+        float t = 0f;
+        while (t <= 1f)
+        {
+            t += Time.deltaTime / seconds;
+            content.GetComponent<RectTransform>().anchoredPosition = Vector2.Lerp(sPos, ePos, Mathf.SmoothStep(0f, 1f, t));
+            yield return new WaitForFixedUpdate();
+        }
     }
 
     //----------------------------------------------------------------------------------------------------------------------//

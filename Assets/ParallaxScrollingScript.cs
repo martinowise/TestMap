@@ -20,7 +20,7 @@ public class ParallaxScrollingScript : MonoBehaviour {
     }
 
     void Update () {
-        //offset abhängig von anchoredposition des contents, tiles wie angegeben
+        //offset abhängig von anchoredposition des contents (negieren für richtige richtung), tiles wie angegeben
         layerRect.GetComponent<RawImage>().uvRect = new Rect(contentRect.anchoredPosition.x * -speed, contentRect.anchoredPosition.y * -speed, tile, tile);
 	}
 }
