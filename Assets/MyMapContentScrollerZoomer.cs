@@ -22,6 +22,9 @@ public class MyMapContentScrollerZoomer : MonoBehaviour
 
     float myMaxScale;
     float myMinScale;
+    bool limitActive;
+    Vector3 sLimit;
+    Vector3 eLimit;
 
     private void Start() {
         myMaxScale = maxScale;
@@ -168,20 +171,19 @@ public class MyMapContentScrollerZoomer : MonoBehaviour
         // gelöst über vektoren. wichtig: die image-dummies in der szene sind nicht ausgangspunkt für koordinaten! (gizmos verwenden?)
         if (ccc == 1)
         {
-            LimitMap(new Vector3(0, 0, 0), new Vector3(200, -200, 0));
+            LimitMap(new Vector3(0, 0, 0), new Vector3(300, -200, 0));
         }
         if (ccc == 2)
         {
-            LimitMap(new Vector3(0, 0, 0), new Vector3(400, -400, 0));
+            LimitMap(new Vector3(0, 0, 0), new Vector3(600, -400, 0));
         }
-
         if (ccc == 3)
         {
-            LimitMap(new Vector3(0, 0, 0), new Vector3(600, -600, 0));
+            LimitMap(new Vector3(0, 0, 0), new Vector3(900, -600, 0));
         }
         if (ccc == 4)
         {
-            LimitMap(new Vector3(0, 0, 0), new Vector3(800, -800, 0));
+            LimitMap(new Vector3(0, 0, 0), new Vector3(1200, -800, 0));
         }
         ccc++;
         if (ccc > 4) ccc = 1;
@@ -198,9 +200,6 @@ public class MyMapContentScrollerZoomer : MonoBehaviour
     }
     */
 
-    bool limitActive;
-    Vector3 sLimit;
-    Vector3 eLimit;
     public void LimitMap(Vector3 sPos, Vector3 ePos) {
         //die position wird berechnet aus dem durchschnitt zweier vektoren, vektoren treffen sich in der mitte (funktioniert nur für quadrate weil: Mathf.sqrt(2))
         RectTransform rect1 = content.GetComponent<RectTransform>();
