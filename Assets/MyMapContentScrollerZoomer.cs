@@ -12,21 +12,30 @@ public class MyMapContentScrollerZoomer : MonoBehaviour
     public GameObject viewport;  // viewport, parent of content
     public GameObject content;  // content
 
-    public float maxScale;
-    public float minScale;
-    public float zoomSpeed;
+    RectTransform contentRect; //schenllerer zugriff auf content.GetComponent<RectTransform>()
+
+    public float maxScale; //dichtester zustand beim zoomen
+    public float minScale; //entferntester zustand beim zoomen
+    public float zoomSpeed; //geschwindigkeit des zooms
 
     public GameObject testPlanet1;
     public GameObject testPlanet2;
     public GameObject testPlanet3;
 
-    float myMaxScale;
-    float myMinScale;
-    bool limitActive;
-    Vector3 sLimit;
-    Vector3 eLimit;
+    public bool clampParallaxX; //toggle für unterschiedliche modi in ParallaxScrollingScript
+    public bool clampParallaxY; //toggle für unterschiedliche modi in ParallaxScrollingScript
+
+    bool limitActive; //toggle für LimitMap
+    float myMaxScale; //zwischenspeichern der original maxScale für ClearLimit
+    float myMinScale; //zwischenspeichern der original minScale für ClearLimit
+
+    Vector3 sLimit; //schnittstelle zwischen LimitMap und Update (anfang limit)
+    Vector3 eLimit; //schnittstelle zwischen LimitMap und Update (ende limit)
+
+    //----------------------------------------------------------------------------------------------------------------------//
 
     private void Start() {
+        contentRect = content.GetComponent<RectTransform>();
         myMaxScale = maxScale;
         myMinScale = minScale;
     }
@@ -80,27 +89,39 @@ public class MyMapContentScrollerZoomer : MonoBehaviour
         //Limit
         if(limitActive)
         {
-            //beschränkt horizontal
-            if (content.GetComponent<RectTransform>().anchoredPosition.x > sLimit.x * -1 * content.GetComponent<RectTransform>().localScale.x)
+            //beschränkt horizontal + kollisionstoggle an für x
+            if (contentRect.anchoredPosition.x > sLimit.x * -1 * contentRect.localScale.x)
             {
-                content.GetComponent<RectTransform>().anchoredPosition = new Vector2 (sLimit.x * -1 * content.GetComponent<RectTransform>().localScale.x, content.GetComponent<RectTransform>().anchoredPosition.y);
+                contentRect.anchoredPosition = new Vector2 (sLimit.x * -1 * contentRect.localScale.x, contentRect.anchoredPosition.y);
+                clampParallaxX = true;
             }
 
-            if (content.GetComponent<RectTransform>().anchoredPosition.x < eLimit.x * -1 * content.GetComponent<RectTransform>().localScale.x)
+            if (contentRect.anchoredPosition.x < eLimit.x * -1 * contentRect.localScale.x)
             {
-                content.GetComponent<RectTransform>().anchoredPosition = new Vector2(eLimit.x * -1 * content.GetComponent<RectTransform>().localScale.x, content.GetComponent<RectTransform>().anchoredPosition.y);
+                contentRect.anchoredPosition = new Vector2(eLimit.x * -1 * contentRect.localScale.x, contentRect.anchoredPosition.y);
+                clampParallaxX = true;
             }
 
-            //beschränkt vertikal
-            if (content.GetComponent<RectTransform>().anchoredPosition.y < sLimit.y * -1 * content.GetComponent<RectTransform>().localScale.y)
+            //beschränkt vertikal + kollisionstoggle an für y
+            if (contentRect.anchoredPosition.y < sLimit.y * -1 * contentRect.localScale.y)
             {
-                content.GetComponent<RectTransform>().anchoredPosition = new Vector2(content.GetComponent<RectTransform>().anchoredPosition.x, sLimit.y * -1 * content.GetComponent<RectTransform>().localScale.x);
+                contentRect.anchoredPosition = new Vector2(contentRect.anchoredPosition.x, sLimit.y * -1 * contentRect.localScale.x);
+                clampParallaxY = true;
             }
 
-            if (content.GetComponent<RectTransform>().anchoredPosition.y > eLimit.y * -1 * content.GetComponent<RectTransform>().localScale.y)
+            if (contentRect.anchoredPosition.y > eLimit.y * -1 * contentRect.localScale.y)
             {
-                content.GetComponent<RectTransform>().anchoredPosition = new Vector2(content.GetComponent<RectTransform>().anchoredPosition.x, eLimit.y * -1 * content.GetComponent<RectTransform>().localScale.x);
+                contentRect.anchoredPosition = new Vector2(contentRect.anchoredPosition.x, eLimit.y * -1 * contentRect.localScale.x);
+                clampParallaxY = true;
             }
+
+            //setzt kollisionstoggle zurück für x
+            if(contentRect.anchoredPosition.x < sLimit.x * -1 * contentRect.localScale.x && contentRect.anchoredPosition.x > eLimit.x * -1 * contentRect.localScale.x +.01f)
+            { clampParallaxX = false; }
+
+            //setzt kollisionstoggle zurück für y
+            if (contentRect.anchoredPosition.y > sLimit.y * -1 * contentRect.localScale.y && contentRect.anchoredPosition.y < eLimit.y * -1 * contentRect.localScale.y - .01f)
+            { clampParallaxY = false; }
         }
         
     }
@@ -159,20 +180,10 @@ public class MyMapContentScrollerZoomer : MonoBehaviour
     }
 
     public void CenterObject(GameObject obj) {
-        Vector2 startPos = content.GetComponent<RectTransform>().anchoredPosition; //position des contents im viewport
-        Vector2 endPos = -1 * obj.GetComponent<RectTransform>().localPosition * content.GetComponent<RectTransform>().localScale.x; //negierte lage des objekts mit richtiger skalierung für content
+        Vector2 startPos = contentRect.anchoredPosition; //position des contents im viewport
+        Vector2 endPos = -1 * obj.GetComponent<RectTransform>().localPosition * contentRect.localScale.x; //negierte lage des objekts mit richtiger skalierung für content
 
-        StartCoroutine(Move(startPos, endPos, 1.0f));
-    }
-
-    IEnumerator Move(Vector2 sPos, Vector2 ePos, float seconds) {
-        float t = 0f;
-        while (t <= 1f)
-        {
-            t += Time.deltaTime / seconds;
-            content.GetComponent<RectTransform>().anchoredPosition = Vector2.Lerp(sPos, ePos, Mathf.SmoothStep(0f, 1f, t));
-            yield return new WaitForFixedUpdate();
-        }
+        StartCoroutine(Move(startPos, endPos, 1.0f)); //default ist 1 sekunde, kann man auch eine public variable zuweisen 
     }
 
     //----------------------------------------------------------------------------------------------------------------------//
@@ -183,86 +194,84 @@ public class MyMapContentScrollerZoomer : MonoBehaviour
         // gelöst über vektoren. wichtig: die image-dummies in der szene sind nicht ausgangspunkt für koordinaten! (gizmos verwenden?)
         if (ccc == 1)
         {
-            LimitMap(new Vector3(0, 0, 0), new Vector3(300, -200, 0));
+            LimitMap(new Vector2(0, 0), new Vector2(400, -200));
         }
         if (ccc == 2)
         {
-            LimitMap(new Vector3(0, 0, 0), new Vector3(600, -400, 0));
+            LimitMap(new Vector2(0, 0), new Vector2(800, -400));
         }
         if (ccc == 3)
         {
-            LimitMap(new Vector3(0, 0, 0), new Vector3(900, -600, 0));
+            LimitMap(new Vector2(0, 0), new Vector2(1200, -600));
         }
         if (ccc == 4)
         {
-            LimitMap(new Vector3(0, 0, 0), new Vector3(1200, -800, 0));
+            LimitMap(new Vector2(0, 0), new Vector2(1600, -800));
         }
         ccc++;
         if (ccc > 4) ccc = 1;
         // LimitMap(int minXinPercentOfMap, int maxXInPercentOfMap, int minYinPercentOfMap, int  maxYInPercentOfMap)
     }
 
-    /* alt
-    public void LimitMap(float minXinPercentOfMap, float maxXInPercentOfMap, float minYinPercentOfMap, float maxYInPercentOfMap)
-    {
-        // todo.. auch hier ist noch nicht klar, in welchen coodinaten das sein soll..
+    public void LimitMap(Vector2 sPos, Vector2 ePos) {
+        RectTransform rect1 = content.GetComponent<RectTransform>(); //content recttransform
+        RectTransform rect2 = viewport.GetComponent<RectTransform>(); //viewport recttransform
 
-        // LimitMap(int minXinPercentOfMap, int maxXInPercentOfMap, int minYinPercentOfMap, int  maxYInPercentOfMap)
+        float dist = Vector2.Distance(sPos, ePos); //diagonale zwischen den beiden vektoren
+        float myDist = dist; //wird zwischengespeichert
+        float scale = 0; //wert, der später zoomen begrenzt
 
-    }
-    */
+        float myWidth = Mathf.Abs(sPos.x) + Mathf.Abs(ePos.x); //breite des aufgespannten rechtecks zwischen vektoren
+        float myHeight = Mathf.Abs(sPos.y) + Mathf.Abs(ePos.y); //höhe des aufgespannten rechtecks zwischen vektoren
 
-    public void LimitMap(Vector3 sPos, Vector3 ePos) {
-        //die position wird berechnet aus dem durchschnitt zweier vektoren, vektoren treffen sich in der mitte (funktioniert nur für quadrate weil: Mathf.sqrt(2))
-        RectTransform rect1 = content.GetComponent<RectTransform>();
-        RectTransform rect2 = viewport.GetComponent<RectTransform>();
-        Vector3 pos = sPos + ePos;
-
-        float dist = Vector3.Distance(sPos, ePos);
-        float myDist = dist;
-        float scale = 0;
+        float referenceWidth = rect2.rect.width; //referenzrechteck hat viewportbreite
+        float referenceHeight = rect2.rect.width * myHeight / myWidth; //referenzrechteck hat selbes breite:höhe verhältnis wie vektor rechteck
+        float referenceDist = Mathf.Sqrt(Mathf.Pow(referenceWidth, 2) + Mathf.Pow(referenceHeight, 2)); //diagonale des referenzrechtecks
 
         //verkleinern
-        if (rect2.rect.width * Mathf.Sqrt(2) < dist)
+        if (referenceDist < dist)
         {
-            for (int i = 0; rect2.rect.width * Mathf.Sqrt(2) < dist; i++)
+            for (int i = 0; referenceDist < dist; i++)
             {
                 if (1 - 0.1f * i >= myMinScale)
                 {
                     dist = myDist;
                     scale = 1 - .1f * i;
 
-                    dist = dist * scale;
-                    rect1.localScale = new Vector3(scale, scale, scale);
-                    minScale = scale - .05f; //fix, damit man auch wirklich auf die gewünschte skalierung kommt
+                    dist *= scale;
+                    minScale = scale - .05f; //-.05f = fix, damit man auch wirklich auf die gewünschte skalierung kommt
                 }
-                else { break; }
+                else { break; } //skaliert niemals unter myMinScale
             }
+            //rect1.localScale = new Vector2(scale, scale); //alt
         }
         //vergrößern
         else
         {
-            for (int i = 0; rect2.rect.width * Mathf.Sqrt(2) > dist; i++)
+            for (int i = 0; referenceDist > dist; i++)
             {
                 if (1 + 0.1f * i <= myMaxScale)
                 {
                     dist = myDist;
                     scale = 1 + .1f * i;
 
-                    dist = dist * scale;
-                    rect1.localScale = new Vector3(scale, scale, scale);
-                    minScale = scale - .05f; //fix, damit man auch wirklich auf die gewünschte skalierung kommt
+                    dist *= scale;
+                    minScale = scale - .05f; //-.05f = fix, damit man auch wirklich auf die gewünschte skalierung kommt
                 }
-                else { break; }
+                else { break; } //skaliert niemals über myMaxScale
             }
+            //rect1.localScale = new Vector2(scale, scale); //alt
         }
 
-        pos = new Vector3(pos[0] / 2, pos[1] / 2, 0);
-        rect1.anchoredPosition = -pos * rect1.localScale.x;
+        Vector2 pos = sPos + ePos;
+        pos = new Vector2(pos[0] / 2, pos[1] / 2); //durchschnittliche position der vektoren ist mittelpunkt des rechtecks
+        //rect1.anchoredPosition = -pos * rect1.localScale.x; //setzte content auf richtige position //alt
 
-        sLimit = sPos;
-        eLimit = ePos;
-        limitActive = true;
+        sLimit = sPos; //schnittstelle zwischen LimitMap und Update (anfang limit)
+        eLimit = ePos; //schnittstelle zwischen LimitMap und Update (ende limit)
+        limitActive = true; //toggle für bedingung in update
+
+        StartCoroutine(MoveScale(pos, new Vector2(scale, scale), 1f)); //animation, constructor sind zielposition, zielskalierung und dauer der animation (default: 1s)
     }
 
     public void ClearLimit() {
@@ -271,11 +280,30 @@ public class MyMapContentScrollerZoomer : MonoBehaviour
         minScale = myMinScale;
     }
 
-    /* alt
-    public void ClearLimit()
-    {
-        LimitMap(0, 0, 100f, 100f);
+    //----------------------------------------------------------------------------------------------------------------------//
+    // animation
 
+    IEnumerator Move(Vector2 sPos, Vector2 ePos, float seconds) {
+        float t = 0f;
+        while (t <= 1f)
+        {
+            t += Time.deltaTime / seconds;
+            contentRect.anchoredPosition = Vector2.Lerp(sPos, ePos, Mathf.SmoothStep(0f, 1f, t));
+            yield return new WaitForFixedUpdate();
+        }
     }
-    */
+
+    
+    IEnumerator MoveScale(Vector2 pos, Vector2 scale, float seconds) {
+        float t = 0f;
+        while (t <= 1f)
+        {
+            t += Time.deltaTime / seconds;
+            contentRect.anchoredPosition = Vector2.Lerp(contentRect.anchoredPosition, -pos * contentRect.localScale.x, Mathf.SmoothStep(0f, 1f, t));
+            contentRect.localScale = Vector2.Lerp(contentRect.localScale, scale, Mathf.SmoothStep(0f, 1f, t));
+            yield return new WaitForFixedUpdate();
+        }
+    }
+    
+
 }
