@@ -3,6 +3,8 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2017
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestMap", "TestMap.csproj", "{736E9F2C-E57D-0F5E-71FD-90554EC50855}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestMap.Editor", "TestMap.Editor.csproj", "{DA691502-BF1B-9356-36D5-BEF6060B0AB5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -13,6 +15,10 @@ Global
 		{736E9F2C-E57D-0F5E-71FD-90554EC50855}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{736E9F2C-E57D-0F5E-71FD-90554EC50855}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{736E9F2C-E57D-0F5E-71FD-90554EC50855}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DA691502-BF1B-9356-36D5-BEF6060B0AB5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DA691502-BF1B-9356-36D5-BEF6060B0AB5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DA691502-BF1B-9356-36D5-BEF6060B0AB5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DA691502-BF1B-9356-36D5-BEF6060B0AB5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

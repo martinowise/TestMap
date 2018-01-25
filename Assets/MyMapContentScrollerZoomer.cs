@@ -214,7 +214,7 @@ public class MyMapContentScrollerZoomer : MonoBehaviour
     }
 
     public void LimitMap(Vector2 sPos, Vector2 ePos) {
-        RectTransform rect1 = content.GetComponent<RectTransform>(); //content recttransform
+        //RectTransform rect1 = content.GetComponent<RectTransform>(); //content recttransform //alt
         RectTransform rect2 = viewport.GetComponent<RectTransform>(); //viewport recttransform
 
         float dist = Vector2.Distance(sPos, ePos); //diagonale zwischen den beiden vektoren
@@ -293,8 +293,7 @@ public class MyMapContentScrollerZoomer : MonoBehaviour
         }
     }
 
-    
-    IEnumerator MoveScale(Vector2 pos, Vector2 scale, float seconds) {
+    IEnumerator MoveScale(Vector2 pos, Vector2 scale, float seconds) {      //wackelt noch
         float t = 0f;
         while (t <= 1f)
         {
